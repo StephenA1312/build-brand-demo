@@ -353,61 +353,48 @@ function BookingModal({ onClose }: { onClose: () => void }) {
 // Video testimonial card — hover to play (desktop), tap to play (mobile)
 // ─────────────────────────────────────────────────────────────────────────────
 
-function VideoCard({ src, index }: { src: string; index: number }) {
-  const ref = useRef<HTMLVideoElement>(null);
-  const [playing, setPlaying] = useState(false);
+const TESTIMONIAL_VIDEOS = [
+  { id: "1183298957", index: 0 },
+  { id: "1183298980", index: 1 },
+  { id: "1183299003", index: 2 },
+  { id: "1183299027", index: 3 },
+];
 
-  function handleEnter() {
-    ref.current?.play();
-    setPlaying(true);
-  }
-  function handleLeave() {
-    if (ref.current) {
-      ref.current.pause();
-      ref.current.currentTime = 0;
-    }
-    setPlaying(false);
-  }
-
-  function handleClick() {
-    if (!ref.current) return;
-    if (ref.current.paused) {
-      ref.current.play();
-      setPlaying(true);
-    } else {
-      ref.current.pause();
-      ref.current.currentTime = 0;
-      setPlaying(false);
-    }
-  }
+function VideoCard({ videoId, index }: { videoId: string; index: number }) {
+  const [hovered, setHovered] = useState(false);
 
   return (
     <div
-      className="relative flex-shrink-0 w-40 sm:w-52 aspect-[9/16] bg-muted overflow-hidden cursor-pointer group transition-all duration-300"
+      className="relative flex-shrink-0 w-40 sm:w-52 aspect-[9/16] bg-black overflow-hidden cursor-pointer group transition-all duration-300"
       style={{
-        border: playing ? "1px solid var(--primary)" : "1px solid var(--border)",
-        boxShadow: playing ? "0 0 20px rgba(212,175,55,0.15)" : "none",
+        border: hovered ? "1px solid var(--primary)" : "1px solid var(--border)",
+        boxShadow: hovered ? "0 0 20px rgba(212,175,55,0.15)" : "none",
       }}
-      onMouseEnter={handleEnter}
-      onMouseLeave={handleLeave}
-      onClick={handleClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
-      <video
-        ref={ref}
-        src={src}
-        muted
-        playsInline
-        loop
-        preload="metadata"
-        className="w-full h-full object-cover"
-      />
+      {hovered ? (
+        <iframe
+          src={`https://player.vimeo.com/video/${videoId}?autoplay=1&muted=1&loop=1&background=1`}
+          className="w-full h-full"
+          style={{ transform: "scale(1.1)", transformOrigin: "center" }}
+          allow="autoplay; fullscreen; picture-in-picture"
+          title={`Client ${String(index + 1).padStart(2, "0")}`}
+        />
+      ) : (
+        <img
+          src={`https://vumbnail.com/${videoId}.jpg`}
+          alt={`Client ${String(index + 1).padStart(2, "0")}`}
+          className="w-full h-full object-cover"
+        />
+      )}
 
       {/* Play overlay */}
       <div
-        className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/50 transition-opacity duration-300"
-        style={{ opacity: playing ? 0 : 1 }}
+        className="absolute inset-0 flex flex-col items-center justify-center gap-3 transition-opacity duration-300"
+        style={{ opacity: hovered ? 0 : 1, pointerEvents: hovered ? "none" : "auto" }}
       >
-        <div className="size-14 rounded-full border border-primary/60 flex items-center justify-center backdrop-blur-sm">
+        <div className="size-14 rounded-full border border-primary/60 flex items-center justify-center backdrop-blur-sm bg-black/40">
           <IconPlay className="size-5 text-primary ml-0.5" />
         </div>
         <span className="text-xs text-muted-foreground tracking-widest uppercase">
@@ -418,7 +405,7 @@ function VideoCard({ src, index }: { src: string; index: number }) {
       {/* Gold top bar when active */}
       <div
         className="absolute top-0 inset-x-0 h-0.5 bg-primary transition-opacity duration-300"
-        style={{ opacity: playing ? 1 : 0 }}
+        style={{ opacity: hovered ? 1 : 0 }}
       />
     </div>
   );
@@ -544,13 +531,11 @@ export default function Home() {
 
               {/* Right — video */}
               <div className="border border-border overflow-hidden">
-                <video
-                  src="/demo.mov"
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                  className="w-full h-auto block"
+                <iframe
+                  src="https://player.vimeo.com/video/1183298632?autoplay=1&loop=1&muted=1&background=1"
+                  className="w-full aspect-video block"
+                  allow="autoplay; fullscreen; picture-in-picture"
+                  title="Demo video"
                 />
               </div>
 
@@ -591,8 +576,8 @@ export default function Home() {
           <div className="max-w-5xl mx-auto px-4 sm:px-6">
             <div className="overflow-x-auto scrollbar-none -mx-4 sm:-mx-6">
               <div className="flex gap-3 pb-2 px-4 sm:px-6">
-                {[1, 2, 3, 4].map((n, i) => (
-                  <VideoCard key={i} src={`/testimonial-${n}.mov`} index={i} />
+                {TESTIMONIAL_VIDEOS.map((v) => (
+                  <VideoCard key={v.index} videoId={v.id} index={v.index} />
                 ))}
                 <div className="flex-shrink-0 w-4 sm:w-6" />
               </div>
