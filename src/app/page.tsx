@@ -349,6 +349,32 @@ export default function Home() {
           </div>
         </div>
 
+        {/* ── Video Testimonials ─────────────────────────────────────────────── */}
+        <section className="py-16 sm:py-20 border-b border-border">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 mb-10">
+            <p className={sectionLabel}>Client Spotlight</p>
+            <div className="flex items-end justify-between gap-4">
+              <h2 className="font-heading text-3xl sm:text-4xl font-bold tracking-tight">
+                In Their Own Words.
+              </h2>
+              <p className="text-xs text-muted-foreground whitespace-nowrap pb-1 hidden sm:block">
+                Hover to preview →
+              </p>
+            </div>
+          </div>
+
+          <div className="max-w-5xl mx-auto px-4 sm:px-6">
+            <div className="overflow-x-auto scrollbar-none -mx-4 sm:-mx-6">
+              <div className="flex gap-3 pb-2 px-4 sm:px-6">
+                {[1, 2, 3, 4].map((n, i) => (
+                  <VideoCard key={i} src={`${BASE}/testimonial-${n}.mov`} index={i} />
+                ))}
+                <div className="flex-shrink-0 w-4 sm:w-6" />
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* ── Process / What We Do ───────────────────────────────────────────── */}
         <section id="what-we-do" className="py-16 sm:py-20">
           <div className="max-w-5xl mx-auto px-4 sm:px-6">
@@ -453,34 +479,6 @@ export default function Home() {
                   </p>
                 </div>
               ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ── Video Testimonials ─────────────────────────────────────────────── */}
-        <section className="py-16 sm:py-20">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 mb-10">
-            <p className={sectionLabel}>Client Spotlight</p>
-            <div className="flex items-end justify-between gap-4">
-              <h2 className="font-heading text-3xl sm:text-4xl font-bold tracking-tight">
-                In Their Own Words.
-              </h2>
-              <p className="text-xs text-muted-foreground whitespace-nowrap pb-1 hidden sm:block">
-                Hover to preview →
-              </p>
-            </div>
-          </div>
-
-          {/* Edge-to-edge horizontal scroll */}
-          <div className="max-w-5xl mx-auto px-4 sm:px-6">
-            <div className="overflow-x-auto scrollbar-none -mx-4 sm:-mx-6">
-              <div className="flex gap-3 pb-2 px-4 sm:px-6">
-                {[1, 2, 3, 4].map((n, i) => (
-                  <VideoCard key={i} src={`${BASE}/testimonial-${n}.mov`} index={i} />
-                ))}
-                {/* Trailing spacer so last card doesn't hug the edge */}
-                <div className="flex-shrink-0 w-4 sm:w-6" />
-              </div>
             </div>
           </div>
         </section>
