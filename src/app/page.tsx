@@ -519,9 +519,9 @@ export default function Home() {
                     Book Free Discovery Call
                     <IconArrowRight className="size-4" />
                   </button>
-                  <a href={STRATEGY_LINK} className={btnOutline}>
+                  <button onClick={openBooking} className={btnOutline}>
                     Strategy Session
-                  </a>
+                  </button>
                 </div>
 
                 <p className="mt-3 text-xs text-muted-foreground">
@@ -860,9 +860,9 @@ export default function Home() {
                   Book Free Discovery Call
                   <IconArrowRight className="size-4" />
                 </button>
-                <a href={STRATEGY_LINK} className={btnOutline}>
+                <button onClick={openBooking} className={btnOutline}>
                   Strategy Session (Existing Clients)
-                </a>
+                </button>
               </div>
               <p className="mt-5 text-xs text-muted-foreground">
                 Free 30-min call · No commitment required
