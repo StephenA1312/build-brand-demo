@@ -102,8 +102,6 @@ function VideoCard({ src, index }: { src: string; index: number }) {
 // Data
 // ─────────────────────────────────────────────────────────────────────────────
 
-const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
-
 const BOOK_LINK = "https://calendly.com/buildandbrand/discovery";
 const STRATEGY_LINK = "https://calendly.com/buildandbrand/strategy";
 
@@ -321,7 +319,7 @@ export default function Home() {
               {/* Right — video */}
               <div className="border border-border overflow-hidden">
                 <video
-                  src={`${BASE}/demo.mov`}
+                  src="/demo.mov"
                   autoPlay
                   muted
                   loop
@@ -367,7 +365,7 @@ export default function Home() {
             <div className="overflow-x-auto scrollbar-none -mx-4 sm:-mx-6">
               <div className="flex gap-3 pb-2 px-4 sm:px-6">
                 {[1, 2, 3, 4].map((n, i) => (
-                  <VideoCard key={i} src={`${BASE}/testimonial-${n}.mov`} index={i} />
+                  <VideoCard key={i} src={`/testimonial-${n}.mov`} index={i} />
                 ))}
                 <div className="flex-shrink-0 w-4 sm:w-6" />
               </div>
@@ -491,7 +489,7 @@ export default function Home() {
               <div className="w-full max-w-xs">
                 <div className="aspect-[3/4] bg-muted overflow-hidden">
                   <img
-                    src={`${BASE}/assets/100A6913_edited.jpg`}
+                    src="/assets/100A6913_edited.jpg"
                     alt="Felix — Founder of Build &amp; Brand Media"
                     className="w-full h-full object-cover grayscale"
                   />
