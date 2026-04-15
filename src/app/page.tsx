@@ -37,72 +37,28 @@ const IconPlay = ({ className = "size-5" }: { className?: string }) => (
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Video testimonial card — hover to play, leave to reset
+// Shared styles (defined early so components below can reference them)
 // ─────────────────────────────────────────────────────────────────────────────
 
-function VideoCard({ src, index }: { src: string; index: number }) {
-  const ref = useRef<HTMLVideoElement>(null);
-  const [playing, setPlaying] = useState(false);
+const btnPrimary =
+  "inline-flex shrink-0 items-center justify-center gap-2 font-heading text-sm font-bold tracking-wider whitespace-nowrap transition-all outline-none active:translate-y-px h-11 px-6 bg-primary text-primary-foreground hover:bg-primary/85";
 
-  function handleEnter() {
-    ref.current?.play();
-    setPlaying(true);
-  }
-  function handleLeave() {
-    if (ref.current) {
-      ref.current.pause();
-      ref.current.currentTime = 0;
-    }
-    setPlaying(false);
-  }
+const btnOutline =
+  "inline-flex shrink-0 items-center justify-center gap-2 font-heading text-sm font-bold tracking-wider whitespace-nowrap transition-all outline-none active:translate-y-px h-11 px-6 border border-border text-muted-foreground hover:border-primary/50 hover:text-primary";
 
-  return (
-    <div
-      className="relative flex-shrink-0 w-44 sm:w-52 aspect-[9/16] bg-muted overflow-hidden cursor-pointer group transition-all duration-300"
-      style={{
-        border: playing ? "1px solid var(--primary)" : "1px solid var(--border)",
-        boxShadow: playing ? "0 0 20px rgba(212,175,55,0.15)" : "none",
-      }}
-      onMouseEnter={handleEnter}
-      onMouseLeave={handleLeave}
-    >
-      <video
-        ref={ref}
-        src={src}
-        muted
-        playsInline
-        loop
-        preload="metadata"
-        className="w-full h-full object-cover"
-      />
+const navLink =
+  "inline-flex items-center justify-center text-xs font-medium whitespace-nowrap transition-colors h-8 px-2.5 text-muted-foreground hover:text-foreground";
 
-      {/* Play overlay — fades out when playing */}
-      <div
-        className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/50 transition-opacity duration-300"
-        style={{ opacity: playing ? 0 : 1 }}
-      >
-        <div className="size-14 rounded-full border border-primary/60 flex items-center justify-center backdrop-blur-sm">
-          <IconPlay className="size-5 text-primary ml-0.5" />
-        </div>
-        <span className="text-xs text-muted-foreground tracking-widest uppercase">
-          Client {String(index + 1).padStart(2, "0")}
-        </span>
-      </div>
+const sectionLabel =
+  "text-xs font-bold tracking-widest text-primary uppercase mb-4";
 
-      {/* Gold top bar when active */}
-      <div
-        className="absolute top-0 inset-x-0 h-0.5 bg-primary transition-opacity duration-300"
-        style={{ opacity: playing ? 1 : 0 }}
-      />
-    </div>
-  );
-}
+const inputClass =
+  "w-full bg-muted border border-border text-foreground text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none px-4 h-11 font-heading transition-colors";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Data
 // ─────────────────────────────────────────────────────────────────────────────
 
-const BOOK_LINK = "https://calendly.com/buildandbrand/discovery";
 const STRATEGY_LINK = "https://calendly.com/buildandbrand/strategy";
 
 const TICKER = [
@@ -191,23 +147,282 @@ const TESTIMONIALS = [
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Shared styles
+// Booking modal — 2-week availability calendar
 // ─────────────────────────────────────────────────────────────────────────────
 
-const btnPrimary =
-  "inline-flex shrink-0 items-center justify-center gap-2 font-heading text-sm font-bold tracking-wider whitespace-nowrap transition-all outline-none active:translate-y-px h-11 px-6 bg-primary text-primary-foreground hover:bg-primary/85";
+const DAY_ABBR = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTH_ABBR = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-const btnOutline =
-  "inline-flex shrink-0 items-center justify-center gap-2 font-heading text-sm font-bold tracking-wider whitespace-nowrap transition-all outline-none active:translate-y-px h-11 px-6 border border-border text-muted-foreground hover:border-primary/50 hover:text-primary";
+const TIME_SLOTS = [
+  "9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM",
+  "1:00 PM",  "2:00 PM",  "3:00 PM",  "4:00 PM",
+];
 
-const navLink =
-  "inline-flex items-center justify-center text-xs font-medium whitespace-nowrap transition-colors h-8 px-2.5 text-muted-foreground hover:text-foreground";
+function getWeekdays(count: number): Date[] {
+  const result: Date[] = [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const d = new Date(today);
+  d.setDate(d.getDate() + 1);
+  while (result.length < count) {
+    const dow = d.getDay();
+    if (dow !== 0 && dow !== 6) result.push(new Date(d));
+    d.setDate(d.getDate() + 1);
+  }
+  return result;
+}
 
-const sectionLabel =
-  "text-xs font-bold tracking-widest text-primary uppercase mb-4";
+function fmtDate(d: Date) {
+  return `${DAY_ABBR[d.getDay()]}, ${MONTH_ABBR[d.getMonth()]} ${d.getDate()}`;
+}
 
-const inputClass =
-  "w-full bg-muted border border-border text-foreground text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none px-4 h-11 font-heading transition-colors";
+function BookingModal({ onClose }: { onClose: () => void }) {
+  const [step, setStep] = useState<"date" | "time" | "form" | "done">("date");
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+
+  const availableDays = getWeekdays(10);
+
+  function handleConfirm(e: React.FormEvent) {
+    e.preventDefault();
+    setStep("done");
+  }
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/80" onClick={onClose} />
+
+      {/* Panel */}
+      <div className="relative z-10 w-full sm:max-w-lg bg-background border border-border sm:mb-0">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+          <div>
+            <p className="font-heading text-xs font-bold tracking-widest text-primary uppercase">
+              {step === "date" && "Select a Date"}
+              {step === "time" && "Select a Time"}
+              {step === "form" && "Confirm Booking"}
+              {step === "done" && "Booking Confirmed"}
+            </p>
+            {(step === "time" || step === "form") && selectedDate && (
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {fmtDate(selectedDate)}{selectedTime ? ` · ${selectedTime}` : ""} EST
+              </p>
+            )}
+          </div>
+          <button
+            onClick={onClose}
+            className="size-8 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Close"
+          >
+            <IconX className="size-4" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="p-5">
+
+          {/* Step 1 — Date */}
+          {step === "date" && (
+            <div>
+              <p className="text-xs text-muted-foreground mb-4">
+                Choose a date for your free 30-min discovery call.
+              </p>
+              <div className="grid grid-cols-5 gap-2">
+                {availableDays.map((d, i) => (
+                  <button
+                    key={i}
+                    onClick={() => { setSelectedDate(d); setStep("time"); }}
+                    className="flex flex-col items-center gap-0.5 py-3 border border-border hover:border-primary hover:text-primary transition-all text-xs font-heading"
+                  >
+                    <span className="text-muted-foreground uppercase tracking-widest" style={{ fontSize: "9px" }}>
+                      {DAY_ABBR[d.getDay()]}
+                    </span>
+                    <span className="font-bold text-sm">{d.getDate()}</span>
+                    <span className="text-muted-foreground uppercase tracking-widest" style={{ fontSize: "9px" }}>
+                      {MONTH_ABBR[d.getMonth()]}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <p className="mt-4 text-xs text-muted-foreground">
+                Free 30-min call · No commitment required
+              </p>
+            </div>
+          )}
+
+          {/* Step 2 — Time */}
+          {step === "time" && (
+            <div>
+              <p className="text-xs text-muted-foreground mb-4">
+                All times shown in Eastern Time (EST).
+              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {TIME_SLOTS.map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => { setSelectedTime(t); setStep("form"); }}
+                    className="py-3 border border-border hover:border-primary hover:text-primary transition-all text-xs font-heading font-bold tracking-wider"
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => setStep("date")}
+                className="mt-5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                ← Back to dates
+              </button>
+            </div>
+          )}
+
+          {/* Step 3 — Form */}
+          {step === "form" && (
+            <form onSubmit={handleConfirm} className="flex flex-col gap-3">
+              <p className="text-xs text-muted-foreground mb-1">
+                Enter your details to lock in the call.
+              </p>
+              <input
+                type="text"
+                placeholder="Your Name"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className={inputClass}
+              />
+              <input
+                type="email"
+                placeholder="Your Email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className={inputClass}
+              />
+              <p className="text-xs text-muted-foreground">
+                A calendar invite will be sent to your email.
+              </p>
+              <button type="submit" className={btnPrimary + " justify-center mt-1"}>
+                Confirm Booking
+                <IconArrowRight className="size-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setStep("time")}
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                ← Back to times
+              </button>
+            </form>
+          )}
+
+          {/* Step 4 — Done */}
+          {step === "done" && (
+            <div className="flex flex-col items-center gap-5 py-6 text-center">
+              <div className="size-14 flex items-center justify-center border border-primary">
+                <IconCheck className="size-6 text-primary" />
+              </div>
+              <div>
+                <p className="font-heading text-base font-bold mb-1">
+                  You&apos;re on the calendar!
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {selectedDate && fmtDate(selectedDate)} · {selectedTime} EST
+                </p>
+              </div>
+              <p className="text-sm text-muted-foreground max-w-xs">
+                A confirmation will be sent to{" "}
+                <strong className="text-foreground">{email}</strong>. We&apos;ll see you soon.
+              </p>
+              <button onClick={onClose} className={btnPrimary + " justify-center"}>
+                Done
+              </button>
+            </div>
+          )}
+
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Video testimonial card — hover to play (desktop), tap to play (mobile)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function VideoCard({ src, index }: { src: string; index: number }) {
+  const ref = useRef<HTMLVideoElement>(null);
+  const [playing, setPlaying] = useState(false);
+
+  function handleEnter() {
+    ref.current?.play();
+    setPlaying(true);
+  }
+  function handleLeave() {
+    if (ref.current) {
+      ref.current.pause();
+      ref.current.currentTime = 0;
+    }
+    setPlaying(false);
+  }
+
+  function handleClick() {
+    if (!ref.current) return;
+    if (ref.current.paused) {
+      ref.current.play();
+      setPlaying(true);
+    } else {
+      ref.current.pause();
+      ref.current.currentTime = 0;
+      setPlaying(false);
+    }
+  }
+
+  return (
+    <div
+      className="relative flex-shrink-0 w-40 sm:w-52 aspect-[9/16] bg-muted overflow-hidden cursor-pointer group transition-all duration-300"
+      style={{
+        border: playing ? "1px solid var(--primary)" : "1px solid var(--border)",
+        boxShadow: playing ? "0 0 20px rgba(212,175,55,0.15)" : "none",
+      }}
+      onMouseEnter={handleEnter}
+      onMouseLeave={handleLeave}
+      onClick={handleClick}
+    >
+      <video
+        ref={ref}
+        src={src}
+        muted
+        playsInline
+        loop
+        preload="metadata"
+        className="w-full h-full object-cover"
+      />
+
+      {/* Play overlay */}
+      <div
+        className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/50 transition-opacity duration-300"
+        style={{ opacity: playing ? 0 : 1 }}
+      >
+        <div className="size-14 rounded-full border border-primary/60 flex items-center justify-center backdrop-blur-sm">
+          <IconPlay className="size-5 text-primary ml-0.5" />
+        </div>
+        <span className="text-xs text-muted-foreground tracking-widest uppercase">
+          Client {String(index + 1).padStart(2, "0")}
+        </span>
+      </div>
+
+      {/* Gold top bar when active */}
+      <div
+        className="absolute top-0 inset-x-0 h-0.5 bg-primary transition-opacity duration-300"
+        style={{ opacity: playing ? 1 : 0 }}
+      />
+    </div>
+  );
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Page
@@ -216,6 +431,12 @@ const inputClass =
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [formSent, setFormSent] = useState(false);
+  const [bookingOpen, setBookingOpen] = useState(false);
+
+  function openBooking() {
+    setBookingOpen(true);
+    setMenuOpen(false);
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -231,6 +452,9 @@ export default function Home() {
         Skip to content
       </a>
 
+      {/* Booking modal */}
+      {bookingOpen && <BookingModal onClose={() => setBookingOpen(false)} />}
+
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <header className="fixed top-0 inset-x-0 z-50 bg-background/90 backdrop-blur-md border-b border-border">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
@@ -243,12 +467,12 @@ export default function Home() {
             <a href="#what-we-do" className={navLink}>What We Do</a>
             <a href="#founder" className={navLink}>Our Founder</a>
             <a href="#contact" className={navLink}>Contact</a>
-            <a
-              href={BOOK_LINK}
+            <button
+              onClick={openBooking}
               className="inline-flex items-center justify-center h-8 px-4 text-xs font-bold font-heading tracking-wider bg-primary text-primary-foreground hover:bg-primary/85 transition-colors ml-2"
             >
               Book a Call
-            </a>
+            </button>
           </nav>
 
           {/* Mobile toggle */}
@@ -269,7 +493,9 @@ export default function Home() {
               <a href="#founder" onClick={() => setMenuOpen(false)} className={navLink + " justify-start"}>Our Founder</a>
               <a href="#contact" onClick={() => setMenuOpen(false)} className={navLink + " justify-start"}>Contact</a>
               <div className="pt-3">
-                <a href={BOOK_LINK} className={btnPrimary + " w-full justify-center"}>Book a Discovery Call</a>
+                <button onClick={openBooking} className={btnPrimary + " w-full justify-center"}>
+                  Book a Discovery Call
+                </button>
               </div>
             </div>
           </div>
@@ -279,7 +505,7 @@ export default function Home() {
       <main id="main">
 
         {/* ── Hero ───────────────────────────────────────────────────────────── */}
-        <section className="pt-20 pb-10 sm:pt-24 sm:pb-14 min-h-[calc(100vh-64px)] flex items-center">
+        <section className="pt-20 pb-10 sm:pt-24 sm:pb-14 lg:min-h-[calc(100vh-64px)] lg:flex lg:items-center">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 w-full">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-center">
 
@@ -290,7 +516,7 @@ export default function Home() {
                   Premium Content &amp; Lead Generation
                 </div>
 
-                <h1 className="font-heading text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.05]">
+                <h1 className="font-heading text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.05]">
                   We Turn Your Expertise
                   Into a Content Engine
                   That Drives{" "}
@@ -302,10 +528,10 @@ export default function Home() {
                 </p>
 
                 <div className="mt-7 flex flex-col sm:flex-row gap-3">
-                  <a href={BOOK_LINK} className={btnPrimary}>
+                  <button onClick={openBooking} className={btnPrimary}>
                     Book Free Discovery Call
                     <IconArrowRight className="size-4" />
-                  </a>
+                  </button>
                   <a href={STRATEGY_LINK} className={btnOutline}>
                     Strategy Session
                   </a>
@@ -355,8 +581,9 @@ export default function Home() {
               <h2 className="font-heading text-3xl sm:text-4xl font-bold tracking-tight">
                 In Their Own Words.
               </h2>
-              <p className="text-xs text-muted-foreground whitespace-nowrap pb-1 hidden sm:block">
-                Hover to preview →
+              <p className="text-xs text-muted-foreground whitespace-nowrap pb-1">
+                <span className="hidden sm:inline">Hover to preview →</span>
+                <span className="sm:hidden">Tap to preview →</span>
               </p>
             </div>
           </div>
@@ -387,7 +614,7 @@ export default function Home() {
               {PROCESS.map((step) => (
                 <div
                   key={step.num}
-                  className="py-12 grid grid-cols-1 sm:grid-cols-[100px_1fr] gap-6 sm:gap-12 items-start"
+                  className="py-8 sm:py-12 grid grid-cols-1 sm:grid-cols-[100px_1fr] gap-6 sm:gap-12 items-start"
                 >
                   <div className="font-heading text-7xl font-bold text-primary/15 leading-none select-none">
                     {step.num}
@@ -414,7 +641,7 @@ export default function Home() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-border">
               {SERVICES.map((s) => (
-                <div key={s.title} className="bg-background p-8 sm:p-10 flex flex-col gap-5">
+                <div key={s.title} className="bg-background p-6 sm:p-10 flex flex-col gap-5">
                   <div className="w-8 h-px bg-primary" />
                   <h3 className="font-heading text-base font-bold">{s.title}</h3>
                   <p className="text-xs text-muted-foreground leading-relaxed">{s.body}</p>
@@ -427,7 +654,7 @@ export default function Home() {
         {/* ── Who We Serve ───────────────────────────────────────────────────── */}
         <section className="py-16 sm:py-20">
           <div className="max-w-5xl mx-auto px-4 sm:px-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-16 sm:gap-24 items-center">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-10 sm:gap-24 items-center">
               <div>
                 <p className={sectionLabel}>Built For</p>
                 <h2 className="font-heading text-3xl sm:text-4xl font-bold tracking-tight mb-6 leading-tight">
@@ -436,10 +663,10 @@ export default function Home() {
                 <p className="text-sm text-muted-foreground leading-relaxed mb-8">
                   We don&apos;t work with everyone. Our process is built for entrepreneurs and professionals who have a proven offer, understand the value of premium positioning, and are ready to invest in a system that generates real ROI.
                 </p>
-                <a href={BOOK_LINK} className={btnPrimary}>
+                <button onClick={openBooking} className={btnPrimary}>
                   Book a Discovery Call
                   <IconArrowRight className="size-4" />
-                </a>
+                </button>
               </div>
               <div className="flex flex-col border-t border-border">
                 {WHO_WE_SERVE.map((item) => (
@@ -456,7 +683,7 @@ export default function Home() {
         {/* ── Testimonials ───────────────────────────────────────────────────── */}
         <section className="py-16 sm:py-20 border-y border-border bg-muted/30">
           <div className="max-w-5xl mx-auto px-4 sm:px-6">
-            <div className="mb-16 text-center">
+            <div className="mb-10 text-center">
               <p className={sectionLabel}>Client Testimonials</p>
               <h2 className="font-heading text-3xl sm:text-4xl font-bold tracking-tight">
                 What Our Clients Say.
@@ -465,7 +692,7 @@ export default function Home() {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-border items-start">
               {TESTIMONIALS.map((t) => (
-                <div key={t.name} className="bg-background p-8 sm:p-10 flex flex-col gap-6">
+                <div key={t.name} className="bg-background p-6 sm:p-10 flex flex-col gap-6">
                   <span className="font-heading text-5xl font-bold text-primary leading-none select-none">&ldquo;</span>
                   <div>
                     <p className="font-heading text-base font-bold">
@@ -486,7 +713,7 @@ export default function Home() {
           <div className="max-w-5xl mx-auto px-4 sm:px-6">
             <p className={sectionLabel}>The Founder</p>
             <div className="grid grid-cols-1 sm:grid-cols-[280px_1fr] gap-12 lg:gap-20 items-start mt-12">
-              <div className="w-full max-w-xs">
+              <div className="w-full sm:max-w-xs">
                 <div className="aspect-[3/4] bg-muted overflow-hidden">
                   <img
                     src="/assets/100A6913_edited.jpg"
@@ -519,10 +746,10 @@ export default function Home() {
                   </p>
                 </div>
                 <div className="pt-2">
-                  <a href={BOOK_LINK} className={btnPrimary}>
+                  <button onClick={openBooking} className={btnPrimary}>
                     Book a Discovery Call
                     <IconArrowRight className="size-4" />
-                  </a>
+                  </button>
                 </div>
               </div>
             </div>
@@ -532,7 +759,7 @@ export default function Home() {
         {/* ── Contact ────────────────────────────────────────────────────────── */}
         <section id="contact" className="py-16 sm:py-20 border-y border-border bg-muted/30">
           <div className="max-w-5xl mx-auto px-4 sm:px-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-16 sm:gap-24">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-10 sm:gap-24">
 
               {/* Info */}
               <div>
@@ -599,7 +826,7 @@ export default function Home() {
                       required
                       className={inputClass}
                     />
-                    <select name="source" className={inputClass}>
+                    <select name="source" className={inputClass + " appearance-none"}>
                       <option value="">How did you hear about us?</option>
                       <option value="google">Google Search</option>
                       <option value="instagram">Instagram</option>
@@ -629,7 +856,7 @@ export default function Home() {
         {/* ── Final CTA ──────────────────────────────────────────────────────── */}
         <section className="py-16 sm:py-24">
           <div className="max-w-4xl mx-auto px-4 sm:px-6">
-            <div className="relative border border-border p-10 sm:p-16 text-center">
+            <div className="relative border border-border p-8 sm:p-16 text-center">
               <span className="absolute top-0 left-0 w-7 h-7 border-t-2 border-l-2 border-primary" aria-hidden="true" />
               <span className="absolute top-0 right-0 w-7 h-7 border-t-2 border-r-2 border-primary" aria-hidden="true" />
               <span className="absolute bottom-0 left-0 w-7 h-7 border-b-2 border-l-2 border-primary" aria-hidden="true" />
@@ -644,10 +871,10 @@ export default function Home() {
                 Book your free 30-minute discovery call and let&apos;s map out the content growth strategy that&apos;s right for your business.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                <a href={BOOK_LINK} className={btnPrimary}>
+                <button onClick={openBooking} className={btnPrimary}>
                   Book Free Discovery Call
                   <IconArrowRight className="size-4" />
-                </a>
+                </button>
                 <a href={STRATEGY_LINK} className={btnOutline}>
                   Strategy Session (Existing Clients)
                 </a>
